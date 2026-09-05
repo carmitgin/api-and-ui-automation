@@ -1,0 +1,1021 @@
+{
+  "info": {
+    "_postman_id": "b9940cf4-4312-4d8e-8943-2401b4d8e325",
+    "name": "Team 3 - Comments & Blacklist",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54532327"
+  },
+  "item": [
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Login Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Save TOKEN into a environment variable\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.environment.set(\"TOKEN\", jsonData.access_token);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"admin_user\",\r\n  \"email\": \"admin@svcollege.co.il\",\r\n  \"password\": \"test1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/auth/login",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "save_rec_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Save Recommendation ID\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    // שומר את ה-id של ההמלצה הראשונה ברשימה\r",
+                  "    pm.environment.set(\"rec_id\", jsonData.id); \r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) { pm.environment.set('rec_id', res.id); console.log('✅ rec_id:', res.id); }",
+                  "",
+                  "pm.test('201 Created', () => { pm.response.to.have.status(201); });",
+                  "pm.test('Response time < 5000ms', () => { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+                  "pm.test('Body matches RecommendationOut schema', () => {",
+                  "    pm.expect(res).to.include.all.keys('id','name','category','description','image_url','website_link','recommender_name','created_by','created_at','updated_at');",
+                  "});",
+                  "pm.test('category default is Movie', () => { pm.expect(res.category).to.eql('Movie'); });",
+                  "pm.test('comment_count defaults to 0', () => { pm.expect(res.comment_count).to.eql(0); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Test Movie | API Suite",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Movie",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Created by automated API test suite",
+                  "type": "text"
+                },
+                {
+                  "key": "recommender_name",
+                  "value": "Team 3",
+                  "type": "text"
+                },
+                {
+                  "key": "website_link",
+                  "value": "https://example.com",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ]
+            },
+            "description": "**Schema:** Body_create_recommendation → name (required), recommender_name (required), category (default: Movie), description, website_link, image\n**Auth:** Authorization header required\n**Response 201:** RecommendationOut"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recommendation Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains validation error details\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.detail).to.be.an('array');",
+                  "    pm.expect(jsonData.detail[0].msg).to.equal(\"Field required\");",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}\r\n"
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ]
+            },
+            "description": "**Schema:** Body_create_recommendation → name (required), recommender_name (required), category (default: Movie), description, website_link, image\n**Auth:** Authorization header required\n**Response 201:** RecommendationOut"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Comments",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Verify all fields exist in the response\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "   \r",
+                  "    pm.expect(jsonData.id).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.recommendation_id).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.commenter_id).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.commenter_name).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.rating).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.comment_text).to.not.be.undefined;\r",
+                  "    pm.expect(jsonData.created_at).to.not.be.undefined;\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Connection",
+                "value": "close",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"rating\": 1,\r\n  \"comment_text\": \"המלצה מעולה! ממש עזר לי לפרויקט.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations/{{rec_id}}/comments",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{rec_id}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Comments Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Bad Request for invalid rating\", function () {\r",
+                  "    pm.response.to.have.status(422); \r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response body is not empty\", function () {\r",
+                  "    pm.expect(pm.response.text()).to.be.a('string').and.not.be.empty;\r",
+                  "});\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Connection",
+                "value": "close",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"rating\": 6,\r\n  \"comment_text\": \"המלצה מעולה! ממש עזר לי לפרויקט.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations/{{rec_id}}/comments",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{rec_id}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "pm.test(\"Response time is less than 200ms\", function () {\r",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations/{{rec_id}}/comments",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{rec_id}}",
+                "comments"
+              ]
+            },
+            "description": "Generated from cURL: curl -X 'GET' \\\r\n  'https://sv-students-recommend.onrender.com/api/recommendations/test/comments' \\\r\n  -H 'accept: application/json'"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comments Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 Unauthorized when token is missing\", function () {\r",
+                  "    pm.response.to.have.status(401);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Recommendation Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 (Note: Server performs validation before auth check!)\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains detail array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.detail).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "accept",
+                "value": "*/*"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations/{{rec_id}}",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{rec_id}}"
+              ]
+            },
+            "description": "**Auth:** owner only\n**Response 204:** No Content"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// OpenAPI: DELETE recommendation → 204 No Content",
+                  "pm.test('204 No Content | recommendation deleted', () => { pm.response.to.have.status(204); });",
+                  "pm.test('Response time < 5000ms', () => { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+                  "pm.test('Response body is empty (204)', () => { pm.expect(pm.response.text()).to.be.empty; });",
+                  "pm.environment.unset('rec_id');",
+                  "pm.environment.set('rec_id', '');"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "accept",
+                "value": "*/*"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseURL}}/api/recommendations/{{rec_id}}",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{rec_id}}"
+              ]
+            },
+            "description": "**Auth:** owner only\n**Response 204:** No Content"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Blacklist",
+      "item": [
+        {
+          "name": "Login Test _Admin credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Save TOKEN into a environment variable\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.environment.set(\"TOKEN\", jsonData.access_token);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"admin_user\",\r\n  \"email\": \"admin@svcollege.co.il\",\r\n  \"password\": \"test1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/auth/login",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Block Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "\r",
+                  "const jsonData = pm.response.json();\r",
+                  "if (jsonData && jsonData.id) {\r",
+                  "    pm.collectionVariables.set(\"blacklist_id\", jsonData.id);\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const randomEmail = `user_${pm.variables.replaceIn('{{$randomInt}}')}_${Date.now()}@example.com`;\r",
+                  "pm.collectionVariables.set(\"dynamic_email\", randomEmail);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{dynamic_email}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Block Email Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unauthorized when token is missing\", function () {\r",
+                  "    pm.response.to.have.status(422);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Verify response body is not empty\", function () {\r",
+                  "    pm.expect(pm.response.text()).to.be.a('string').and.not.be.empty;\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const randomEmail = `user_${pm.variables.replaceIn('{{$randomInt}}')}_${Date.now()}@example.com`;\r",
+                  "pm.collectionVariables.set(\"dynamic_email\", randomEmail);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"this-is-not-an-email\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blacklist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "pm.test(\"Verify objects in blacklist have email field\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    if (jsonData.length > 0) {\r",
+                  "        pm.expect(jsonData[0].id).to.not.be.undefined;\r",
+                  "        pm.expect(jsonData[0].email).to.be.a('string');\r",
+                  "        }\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blacklist Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "\r",
+                  "pm.test(\"Status code is 404 Not Found for non-existing block ID\", function () {\r",
+                  "    pm.response.to.have.status(404);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist/999999",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {\r",
+                  "    pm.response.to.have.status(204);\r",
+                  "});\r",
+                  "pm.test(\"Verify delete URL contains the correct blacklist ID\", function () {\r",
+                  "    var expectedId = pm.environment.get(\"blacklist_id\");\r",
+                  "  \r",
+                  "    pm.expect(pm.request.url.toString()).to.include(expectedId);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"test-blocked3@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist/{{blacklist_id}}",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist",
+                "{{blacklist_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Email Negative",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unauthorized for invalid token\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test(\"Response body contains error details\", function () {",
+                  "    pm.expect(pm.response.text()).to.be.a('string').and.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"test-blocked3@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/admin/blacklist/{{blacklist_id}}",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "blacklist",
+                "{{blacklist_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "dynamic_email",
+      "value": ""
+    },
+    {
+      "key": "entry_id",
+      "value": ""
+    },
+    {
+      "key": "blacklist_id",
+      "value": ""
+    }
+  ]
+}
